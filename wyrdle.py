@@ -1,45 +1,73 @@
 import pathlib
 import random
 from string import ascii_letters
+from rich.console import Console
+from rich.theme import Theme
 
 
-def get_random_word():
-    wordList = pathlib.Path("wordlist.txt")
+console = Console(width=40, theme = Theme({" warning ":" red on yellow "}))
+
+
+def get_random_word(wordList):
+    """
+    Getting a 5 letter word from a list of strings
+
+    ##Example: 
+    >>> get_random_word(["SNAKE","WORD","it'll"])
+    'SNAKE'
+    
+    """
     words = [
-            words.upper()
-            for word in wordList.read_text(encoding="utf-8").split("\n")
-            if len(word) == 5 and all(letter in ascii_letters for letter in word)
+            word.upper()
+            for word in wordList
         ]
     return random.choice(words)
 
-def show_guess(guess, word):
-    correct_letters = {
-        letter for letter, correct in zip(guess, word) if letter == correct
-    }
-    misplaced_letters = set(guess) & set(word) - correct_letters
-    wrong_letters = set(guess) - set(word)
+def show_guesses(guesses, word):
+    for guess in guesses:
+        styled_guess = []
+        for letter, correct in zip(guess, word):
+            if letter == correct:
+                style = "bold white on green"
+            elif letter in word:
+                style = "bold white on yellow"
+            elif letter in ascii_letters:
+                style = "white on #666666"
+            else:
+                style = "dim"
+            styled_guess.append(f"[{style}]{letter}[/]")
+    console.print("".join(styled_guess), justify="center")
 
-    print("Correct letters: ", " , ".join(sorted(correct_letters)))
-    print("Misplaced letters: ", " , ".join(sorted(misplaced_letters)))
-    print("Wrong letters: ", " , ".join(sorted(wrong_letters)))
+def game_over(guesses, word, guessed_correctly):
+    refresh_page(headline="Game over")
+    show_guesses(guesses, word)
 
-def game_over(word):
-    print(f"The word was {word}")  
+    if guessed_correctly:
+        console.print(f"\n [bold white on green] Correct, the word is {word} [/]")
+    else:
+        console.print(f"\n [bold white on red] Sorry, the word is {word} [/]")
+    
+
+def refresh_page(headline):
+    console.clear()
+    console.rule(f"[bold red] :leafy_green: {headline} :leafy_green: [/]\n")
 
 def main():
     #pre processing
-    word = get_random_word()
-    
-    #main loop
-    for guess_num in range(1,7):
-        guess = input(f"\nGuess {guess_num}: ").upper()
+    path = pathlib.Path("wordlist2.txt")
+    word = get_random_word(path.read_text(encoding="utf-8").split("\n"))
+    guesses = ["_" *5]*6
 
-        show_guess(guess, word)
-        if guess == word:
+    #main loop
+    for idx in range(6):
+        refresh_page(headline = f"Guess {idx + 1}")
+        show_guesses(guesses, word)
+
+        guesses[idx] = input(f"\nGuess {idx+1}: ").upper()
+        if guesses[idx] == word:
             break
 
-    #post processing
-    else:
-        game_over(word)
+    game_over(guesses, word, guessed_correct = guesses[idx] == word)
+
 if __name__ == "__main__":
     main()
